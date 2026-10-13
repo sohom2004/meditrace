@@ -47,10 +47,31 @@ export const api = {
     body: JSON.stringify({ phone, otp }),
   }),
 
+  register: (phone: string, full_name: string, role: string = 'patient') => fetchJson('/auth/register', {
+    method: 'POST',
+    body: JSON.stringify({ phone, full_name, role }),
+  }),
+
   getMe: () => fetchJson('/auth/me'),
 
   // Profiles
   listCareProfiles: () => fetchJson('/care-profiles'),
+
+  createCareProfile: (data: {
+    full_name: string;
+    relationship: string;
+    date_of_birth?: string;
+    gender?: string;
+    blood_group?: string;
+    abha_address?: string;
+  }) => fetchJson('/care-profiles', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+
+  deleteCareProfile: (profileId: string) => fetchJson(`/care-profiles/${profileId}`, {
+    method: 'DELETE',
+  }),
 
   getSnapshot: (profileId: string) => fetchJson(`/care-profiles/${profileId}/snapshot`),
 
@@ -63,6 +84,14 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ care_profile_id: profileId, test_name: testName, target_unit: targetUnit }),
     }),
+
+  // Clinical Graph Memory & Trajectories
+  getPatientGraph: (profileId: string) => fetchJson(`/care-profiles/${profileId}/graph`),
+
+  getTrajectories: (profileId: string, testName?: string) =>
+    fetchJson(`/care-profiles/${profileId}/trajectories${testName ? `?test_name=${encodeURIComponent(testName)}` : ''}`),
+
+  getReportFindings: (documentId: string) => fetchJson(`/documents/${documentId}/findings`),
 
   getReviews: (profileId: string) => fetchJson(`/care-profiles/${profileId}/reviews`),
 

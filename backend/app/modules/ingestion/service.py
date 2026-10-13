@@ -230,6 +230,15 @@ class IngestionService:
         session.add(outbox)
         await session.commit()
 
+        # Build Connected Clinical Graph Subgraph with report mapping & temporal comparisons
+        from app.modules.graph_memory.service import GraphMemoryService
+        await GraphMemoryService.build_document_subgraph(
+            session=session,
+            care_profile_id=doc.care_profile_id,
+            document_id=doc.id,
+            extracted_facts=extracted
+        )
+
         # Trigger projection update
         await ProjectionWorker.process_outbox_event(session, outbox.id)
 

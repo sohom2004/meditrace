@@ -55,22 +55,49 @@ class VoiceService:
         sources: list[dict[str, Any]] = []
         pending_actions: list[dict[str, Any]] = []
 
+        # 3. Query Graph Memory
+        from app.modules.graph_memory.service import GraphMemoryService
+        graph_mem = await GraphMemoryService.traverse_semantic_memory(session, care_profile_id, speech_input)
+
         # Tool execution matching
-        if any(w in lower_input for w in ["hba1c", "blood sugar", "glucose", "creatinine", "trend", "compare", "test", "reading"]):
-            model_activity = "Calculated diagnostic trend"
+        if any(w in lower_input for w in ["hba1c", "blood sugar", "glucose", "creatinine", "trend", "compare", "test", "reading", "report", "finding", "past"]):
+            model_activity = "Calculated diagnostic trend from clinical graph memory"
             target_test = "HbA1c" if "hba1c" in lower_input else ("Fasting Blood Glucose" if "sugar" in lower_input or "glucose" in lower_input else "Hemoglobin")
-            comp = await ToolCatalog.execute_tool(
-                session, care_profile_id, user_id, "compare_observations", {"test_name": target_test}
-            )
-            if "error" not in comp:
+            
+            # Check if graph memory has temporal comparisons
+            if graph_mem.get("comparisons") and graph_mem["comparisons"][0].get("text"):
+                comp = graph_mem["comparisons"][0]
                 speech_reply = (
-                    f"Your {comp['test_name']} reading is {comp['current_value']} {comp['normalized_unit']}. "
-                    f"{comp['interpretation_note'].split('.')[0]}."
+                    f"Based on your past reports, your {target_test} changed: {comp['text']} "
+                    f"The trend is clinically {comp['trend']}."
                 )
-                text_reply = comp["interpretation_note"]
+                text_reply = f"{comp['text']} Clinical status: {comp['trend']}."
+                for node in graph_mem.get("relevant_nodes", [])[:3]:
+                    sources.append({"fact_id": node.get("document_id") or "GRAPH-NODE", "label": f"{node['label']} ({node.get('value')} {node.get('unit')})"})
             else:
-                speech_reply = f"I could not find recent observation readings for {target_test}."
-                text_reply = speech_reply
+                comp = await ToolCatalog.execute_tool(
+                    session, care_profile_id, user_id, "compare_observations", {"test_name": target_test}
+                )
+                if "error" not in comp:
+                    speech_reply = (
+                        f"Your latest {target_test} reading is {comp['current_value']} {comp['normalized_unit']}. "
+                        f"{comp['interpretation_note'].split('.')[0]}."
+                    )
+                    text_reply = comp["interpretation_note"]
+                    sources.append({"fact_id": comp.get("current_fact_id"), "label": f"Current {target_test}"})
+                    if comp.get("previous_fact_id"):
+                        sources.append({"fact_id": comp.get("previous_fact_id"), "label": f"Previous {target_test}"})
+                elif graph_mem.get("relevant_nodes"):
+                    nodes_summary = ", ".join(f"{n['label']}: {n.get('value')} {n.get('unit')}" for n in graph_mem["relevant_nodes"] if n.get("value") is not None)
+                    if not nodes_summary:
+                        nodes_summary = ", ".join(n['label'] for n in graph_mem["relevant_nodes"][:3])
+                    speech_reply = f"In your medical reports, I found for {target_test}: {nodes_summary}."
+                    text_reply = f"Grounded graph findings: {graph_mem['graph_summary']}"
+                    for node in graph_mem.get("relevant_nodes", [])[:3]:
+                        sources.append({"fact_id": node.get("document_id") or "GRAPH-NODE", "label": node['label']})
+                else:
+                    speech_reply = f"I could not find recent observation readings for {target_test}."
+                    text_reply = speech_reply
 
         elif any(w in lower_input for w in ["book", "appointment", "doctor", "dr.", "schedule"]):
             model_activity = "Prepared appointment proposal"
@@ -227,7 +254,7 @@ class VoiceService:
                 dose = "1 tab BD" if "twice" in lower or "bd" in lower else "1 tab OD"
                 medications.append({
                     "medicine_name": kd.title(),
-                    "generic_name": brand_info["generic_name"],
+                    "generic_name": brand_info.get("generic_name") or kd.title(),
                     "dosage": dose,
                     "frequency": "Daily",
                     "duration": "30 days"
@@ -255,7 +282,7 @@ class VoiceService:
 
         for m in medications:
             m_name = m["medicine_name"].lower()
-            m_gen = m.get("generic_name", "").lower()
+            m_gen = (m.get("generic_name") or "").lower()
 
             direct_match = any((alg in m_name or alg in m_gen) and alg for alg in patient_allergies)
             class_match = is_penicillin_allergic and any(p in m_name or p in m_gen for p in ["amoxicillin", "ampicillin", "augmentin", "penicillin"])

@@ -27,6 +27,12 @@ class TokenResponse(BaseModel):
     user: UserRead
 
 
+class UserRegisterRequest(BaseModel):
+    phone: str
+    full_name: str
+    role: str = "patient"
+
+
 class OTPRequest(BaseModel):
     phone: str
 

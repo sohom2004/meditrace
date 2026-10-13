@@ -181,6 +181,18 @@ INDIAN_DRUG_CATALOG: dict[str, dict[str, str]] = {
         "atc": "J01FA10",
         "class": "Macrolide Antibiotic",
         "standard_dose": "500mg OD for 3-5 days"
+    },
+    "amoxicillin": {
+        "generic": "Amoxicillin 500mg",
+        "atc": "J01CA04",
+        "class": "Penicillin Antibiotic",
+        "standard_dose": "500mg TDS"
+    },
+    "augmentin 625": {
+        "generic": "Amoxicillin (500mg) + Clavulanic Acid (125mg)",
+        "atc": "J01CR02",
+        "class": "Penicillin Antibiotic (Beta-lactam)",
+        "standard_dose": "1 tablet BD for 5-7 days"
     }
 }
 

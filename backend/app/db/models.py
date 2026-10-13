@@ -384,3 +384,37 @@ class MedicineOrder(Base):
     total_estimate = Column(Float, default=450.0)  # INR
     created_at = Column(DateTime(timezone=True), default=utc_now)
 
+
+class ClinicalGraphNode(Base):
+    __tablename__ = "clinical_graph_nodes"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    care_profile_id = Column(String(36), ForeignKey("care_profiles.id"), nullable=False, index=True)
+    document_id = Column(String(36), ForeignKey("documents.id"), nullable=True, index=True)
+    node_type = Column(String(30), nullable=False, index=True)  # report, finding, condition, medication, allergy, concept
+    entity_id = Column(String(60), nullable=True, index=True)  # fact_id, document_id, loinc code, etc.
+    label = Column(String(150), nullable=False, index=True)
+    canonical_code = Column(String(60), nullable=True, index=True)  # LOINC:1558-6, ATC:A10BD02, etc.
+    value_numeric = Column(Float, nullable=True)
+    unit = Column(String(30), nullable=True)
+    flag = Column(String(20), default="normal")  # normal, high, low, critical
+    observed_at = Column(DateTime(timezone=True), default=utc_now)
+    properties_json = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=utc_now)
+
+
+class ClinicalGraphEdge(Base):
+    __tablename__ = "clinical_graph_edges"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    care_profile_id = Column(String(36), ForeignKey("care_profiles.id"), nullable=False, index=True)
+    source_node_id = Column(String(36), ForeignKey("clinical_graph_nodes.id"), nullable=False, index=True)
+    target_node_id = Column(String(36), ForeignKey("clinical_graph_nodes.id"), nullable=False, index=True)
+    relation_type = Column(String(50), nullable=False, index=True)  # HAS_FINDING, TEMPORAL_SEQUENCE, INDICATES, TREATED_BY, CONTRAINDICATES
+    weight = Column(Float, default=1.0)
+    delta_numeric = Column(Float, nullable=True)
+    delta_percentage = Column(Float, nullable=True)
+    trend_direction = Column(String(30), nullable=True)  # up, down, stable, improved, worsened
+    properties_json = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=utc_now)
+

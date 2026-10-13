@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { UploadCloud, Camera, FileText, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
+import { UploadCloud, Camera, FileText, CheckCircle2, Clock, AlertCircle, Sparkles } from 'lucide-react';
 import { api } from '../api';
 
 interface UploadCardProps {
@@ -45,7 +45,6 @@ export const DocumentUploadCard: React.FC<UploadCardProps> = ({
   };
 
   const handleSimulateScan = async () => {
-    // Generate synthetic handwritten prescription file for testing
     const sampleText = `
     APOLLO CLINIC OPD PRESCRIPTION
     Date: 2026-10-10
@@ -76,14 +75,14 @@ export const DocumentUploadCard: React.FC<UploadCardProps> = ({
   };
 
   return (
-    <div className="glass-card p-5 mb-6">
+    <div className="glass-card p-5 border border-slate-800">
       <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
         <div>
-          <h3 className="text-base font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <UploadCloud className="w-5 h-5 text-sky-600" />
+          <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
+            <UploadCloud className="w-5 h-5 text-sky-400" />
             <span>Prescription & Lab Report Ingestion</span>
           </h3>
-          <p className="text-xs text-slate-500 font-medium">
+          <p className="text-xs text-slate-400">
             Multi-route ingestion (Digital PDF, Layout Document AI, Handwriting Vision-LLM)
           </p>
         </div>
@@ -91,9 +90,9 @@ export const DocumentUploadCard: React.FC<UploadCardProps> = ({
         {reviewCount > 0 && (
           <button
             onClick={onOpenReviews}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500 text-white text-xs font-semibold shadow-sm hover:bg-amber-600 transition-all cursor-pointer"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-semibold shadow-sm transition-all cursor-pointer"
           >
-            <AlertCircle className="w-4 h-4" />
+            <AlertCircle className="w-4 h-4 text-amber-400" />
             <span>{reviewCount} Targeted Review(s) Pending</span>
           </button>
         )}
@@ -101,9 +100,9 @@ export const DocumentUploadCard: React.FC<UploadCardProps> = ({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* Upload File Input */}
-        <label className="flex flex-col items-center justify-center p-6 rounded-2xl border-2 border-dashed border-sky-300/60 bg-sky-50/40 hover:bg-sky-50/70 transition-all cursor-pointer group">
-          <UploadCloud className="w-8 h-8 text-sky-500 mb-2 group-hover:scale-110 transition-transform" />
-          <span className="text-xs font-semibold text-slate-800">Upload PDF / Diagnostic Scan</span>
+        <label className="flex flex-col items-center justify-center p-6 rounded-2xl border-2 border-dashed border-sky-500/30 bg-sky-950/20 hover:bg-sky-950/40 hover:border-sky-500/50 transition-all cursor-pointer group">
+          <UploadCloud className="w-8 h-8 text-sky-400 mb-2 group-hover:scale-110 transition-transform" />
+          <span className="text-xs font-semibold text-white">Upload PDF / Diagnostic Scan</span>
           <span className="text-[11px] text-slate-400 mt-0.5">SHA-256 deduplicated, direct to storage</span>
           <input
             type="file"
@@ -118,22 +117,22 @@ export const DocumentUploadCard: React.FC<UploadCardProps> = ({
         <button
           onClick={handleSimulateScan}
           disabled={isUploading}
-          className="flex flex-col items-center justify-center p-6 rounded-2xl border-2 border-dashed border-teal-300/60 bg-teal-50/40 hover:bg-teal-50/70 transition-all cursor-pointer group"
+          className="flex flex-col items-center justify-center p-6 rounded-2xl border-2 border-dashed border-teal-500/30 bg-teal-950/20 hover:bg-teal-950/40 hover:border-teal-500/50 transition-all cursor-pointer group"
         >
-          <Camera className="w-8 h-8 text-teal-600 mb-2 group-hover:scale-110 transition-transform" />
-          <span className="text-xs font-semibold text-slate-800">Scan Rx / Handwritten Document</span>
-          <span className="text-[11px] text-slate-400 mt-0.5">Vision-LLM OCR + Brand→Generic mapping</span>
+          <Camera className="w-8 h-8 text-teal-400 mb-2 group-hover:scale-110 transition-transform" />
+          <span className="text-xs font-semibold text-white">Scan Rx / Handwritten Document</span>
+          <span className="text-[11px] text-slate-400 mt-0.5">Vision-LLM OCR + Indian Drug brand mapping</span>
         </button>
       </div>
 
       {/* Progress & Status */}
       {isUploading && (
-        <div className="mt-4 p-3 rounded-xl bg-white/80 border border-slate-200/80">
-          <div className="flex items-center justify-between text-xs font-semibold mb-1.5 text-slate-700">
+        <div className="mt-4 p-3.5 rounded-xl bg-slate-900 border border-slate-800">
+          <div className="flex items-center justify-between text-xs font-semibold mb-1.5 text-slate-300">
             <span>{statusMessage}</span>
-            <span>{uploadProgress}%</span>
+            <span className="text-sky-400 font-mono">{uploadProgress}%</span>
           </div>
-          <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+          <div className="w-full bg-slate-950 rounded-full h-1.5 overflow-hidden">
             <div
               className="bg-gradient-to-r from-sky-500 to-teal-400 h-1.5 transition-all duration-300"
               style={{ width: `${uploadProgress}%` }}
@@ -143,8 +142,8 @@ export const DocumentUploadCard: React.FC<UploadCardProps> = ({
       )}
 
       {!isUploading && statusMessage && (
-        <div className="mt-3 text-xs font-medium text-emerald-700 bg-emerald-50 px-3 py-2 rounded-xl border border-emerald-200/50 flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 shrink-0" />
+        <div className="mt-3 text-xs font-medium text-emerald-300 bg-emerald-950/60 px-3 py-2.5 rounded-xl border border-emerald-800/60 flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
           <span>{statusMessage}</span>
         </div>
       )}

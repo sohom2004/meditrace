@@ -16,39 +16,39 @@ export const TimelineSection: React.FC<TimelineProps> = ({ events }) => {
   const getEventIcon = (type: string) => {
     switch (type) {
       case 'lab_report':
-        return <FlaskConical className="w-4 h-4 text-sky-600" />;
+        return <FlaskConical className="w-4 h-4 text-sky-400" />;
       case 'prescription':
-        return <Pill className="w-4 h-4 text-indigo-600" />;
+        return <Pill className="w-4 h-4 text-purple-400" />;
       case 'consultation':
-        return <Stethoscope className="w-4 h-4 text-emerald-600" />;
+        return <Stethoscope className="w-4 h-4 text-emerald-400" />;
       default:
-        return <FileText className="w-4 h-4 text-slate-500" />;
+        return <FileText className="w-4 h-4 text-slate-400" />;
     }
   };
 
   return (
-    <div className="glass-card p-5 mb-6">
+    <div className="glass-card p-5 border border-slate-800">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
         <div>
-          <h3 className="text-base font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <Clock className="w-5 h-5 text-indigo-600" />
+          <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
+            <Clock className="w-5 h-5 text-indigo-400" />
             <span>Longitudinal Health Memory Timeline</span>
           </h3>
-          <p className="text-xs text-slate-500 font-medium">
+          <p className="text-xs text-slate-400 font-medium">
             Relational projection rebuildable from verified clinical facts & outbox events
           </p>
         </div>
 
         {/* Filter Pills */}
-        <div className="flex items-center gap-1 p-1 rounded-xl bg-slate-100/80 border border-slate-200/60 text-xs">
+        <div className="flex items-center gap-1 p-1 rounded-xl bg-slate-900 border border-slate-800 text-xs">
           {(['all', 'lab_report', 'prescription'] as const).map((t) => (
             <button
               key={t}
               onClick={() => setFilter(t)}
               className={`px-3 py-1 rounded-lg font-semibold capitalize transition-all cursor-pointer ${
                 filter === t
-                  ? 'bg-white text-slate-900 shadow-xs'
-                  : 'text-slate-500 hover:text-slate-900'
+                  ? 'bg-sky-600 text-white shadow-sm'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
               {t === 'all' ? 'All Records' : t.replace('_', ' ')}
@@ -57,25 +57,25 @@ export const TimelineSection: React.FC<TimelineProps> = ({ events }) => {
         </div>
       </div>
 
-      <div className="relative pl-6 space-y-6 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200/80">
+      <div className="relative pl-6 space-y-6 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-800">
         {filteredEvents.length === 0 ? (
-          <p className="text-xs text-slate-400 italic py-4">No events found for this filter.</p>
+          <p className="text-xs text-slate-500 italic py-4">No events found for this filter.</p>
         ) : (
           filteredEvents.map((e) => (
             <div key={e.id} className="relative group">
               {/* Dot */}
-              <div className="absolute -left-6 top-1 w-5 h-5 rounded-full bg-white border-2 border-sky-500 flex items-center justify-center shadow-xs">
-                <span className="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
+              <div className="absolute -left-6 top-1 w-5 h-5 rounded-full bg-slate-950 border-2 border-sky-500 flex items-center justify-center shadow-md shadow-sky-500/20">
+                <span className="w-1.5 h-1.5 rounded-full bg-sky-400"></span>
               </div>
 
               {/* Event Card */}
-              <div className="p-4 rounded-2xl bg-white/70 border border-slate-200/70 hover:border-sky-300 hover:shadow-md transition-all">
+              <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 hover:bg-slate-800/60 transition-all">
                 <div className="flex items-center justify-between gap-2 mb-1">
                   <div className="flex items-center gap-2">
-                    <div className="p-1.5 rounded-lg bg-slate-50 border border-slate-100">
+                    <div className="p-1.5 rounded-lg bg-slate-950 border border-slate-800">
                       {getEventIcon(e.event_type)}
                     </div>
-                    <h4 className="text-xs font-bold text-slate-900">{e.title}</h4>
+                    <h4 className="text-xs font-bold text-white">{e.title}</h4>
                   </div>
                   <span className="text-[11px] text-slate-400 font-medium">
                     {new Date(e.event_date).toLocaleDateString('en-IN', {
@@ -85,11 +85,11 @@ export const TimelineSection: React.FC<TimelineProps> = ({ events }) => {
                     })}
                   </span>
                 </div>
-                <p className="text-xs text-slate-600 mt-1 leading-relaxed pl-8">{e.summary}</p>
+                <p className="text-xs text-slate-300 mt-1 leading-relaxed pl-8">{e.summary}</p>
                 {e.source_fact_id && (
                   <div className="mt-2 pl-8 flex items-center gap-2">
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200/60">
-                      {e.source_fact_id}
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-950 text-sky-400 border border-slate-800">
+                      fact_id: {e.source_fact_id}
                     </span>
                   </div>
                 )}

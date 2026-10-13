@@ -2,12 +2,15 @@ import asyncio
 import json
 from datetime import datetime, timedelta, timezone
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.models import (
     AccessGrant,
     Allergy,
     AvailabilitySlot,
     CareProfile,
     CareProfileMember,
+    ClinicalGraphEdge,
+    ClinicalGraphNode,
     ClinicalObservation,
     Condition,
     ConsentRecord,
@@ -20,6 +23,125 @@ from app.db.models import (
 )
 from app.db.session import Base, async_session_maker, engine
 from app.modules.assistant.snapshot import PatientSnapshotService
+import uuid
+
+
+async def seed_graph_for_existing_records(session: AsyncSession):
+    """Backfills clinical graph nodes and temporal edges from existing documents and observations."""
+    docs_res = await session.execute(select(Document))
+    docs = docs_res.scalars().all()
+    for doc in docs:
+        r_node_res = await session.execute(
+            select(ClinicalGraphNode).where(
+                ClinicalGraphNode.document_id == doc.id,
+                ClinicalGraphNode.node_type == "report"
+            )
+        )
+        report_node = r_node_res.scalar_one_or_none()
+        if not report_node:
+            report_node = ClinicalGraphNode(
+                id=str(uuid.uuid4()),
+                care_profile_id=doc.care_profile_id,
+                document_id=doc.id,
+                node_type="report",
+                entity_id=doc.id,
+                label=doc.filename,
+                properties_json=json.dumps({"filename": doc.filename, "checksum": doc.checksum}),
+                observed_at=doc.created_at
+            )
+            session.add(report_node)
+            await session.flush()
+
+    # Backfill observations
+    obs_res = await session.execute(select(ClinicalObservation))
+    for o in obs_res.scalars().all():
+        f_node_res = await session.execute(
+            select(ClinicalGraphNode).where(ClinicalGraphNode.entity_id == o.fact_id)
+        )
+        f_node = f_node_res.scalar_one_or_none()
+        if not f_node:
+            f_node = ClinicalGraphNode(
+                id=str(uuid.uuid4()),
+                care_profile_id=o.care_profile_id,
+                document_id=o.document_id,
+                node_type="finding",
+                entity_id=o.fact_id,
+                label=o.display_name,
+                canonical_code=f"LOINC:{o.code_loinc}" if o.code_loinc else "",
+                value_numeric=o.value_numeric,
+                unit=o.unit,
+                flag=o.flag,
+                observed_at=o.observed_at,
+                properties_json=json.dumps({
+                    "ref_low": o.reference_range_low,
+                    "ref_high": o.reference_range_high,
+                    "report_name": "Clinical Record"
+                })
+            )
+            session.add(f_node)
+            await session.flush()
+
+            if o.document_id:
+                # Link to report node if available
+                r_node_res = await session.execute(
+                    select(ClinicalGraphNode).where(
+                        ClinicalGraphNode.document_id == o.document_id,
+                        ClinicalGraphNode.node_type == "report"
+                    )
+                )
+                r_node = r_node_res.scalar_one_or_none()
+                if r_node:
+                    session.add(ClinicalGraphEdge(
+                        id=str(uuid.uuid4()),
+                        care_profile_id=o.care_profile_id,
+                        source_node_id=r_node.id,
+                        target_node_id=f_node.id,
+                        relation_type="HAS_FINDING",
+                        weight=1.0
+                    ))
+
+    # Connect Temporal Sequences
+    findings_res = await session.execute(
+        select(ClinicalGraphNode).where(ClinicalGraphNode.node_type == "finding").order_by(ClinicalGraphNode.observed_at.asc())
+    )
+    all_findings = findings_res.scalars().all()
+    grouped: dict[tuple[str, str], list[ClinicalGraphNode]] = {}
+    for f in all_findings:
+        key = (f.care_profile_id, f.label)
+        grouped.setdefault(key, []).append(f)
+
+    for (cpid, lbl), f_list in grouped.items():
+        if len(f_list) > 1:
+            for i in range(len(f_list) - 1):
+                n1, n2 = f_list[i], f_list[i + 1]
+                edge_exists = await session.execute(
+                    select(ClinicalGraphEdge).where(
+                        ClinicalGraphEdge.source_node_id == n1.id,
+                        ClinicalGraphEdge.target_node_id == n2.id,
+                        ClinicalGraphEdge.relation_type == "TEMPORAL_SEQUENCE"
+                    )
+                )
+                if not edge_exists.scalar_one_or_none() and n1.value_numeric is not None and n2.value_numeric is not None:
+                    delta = round(n2.value_numeric - n1.value_numeric, 2)
+                    delta_pct = round((delta / n1.value_numeric) * 100, 1) if n1.value_numeric else 0.0
+                    trend = "improved" if delta < 0 and any(t in lbl.lower() for t in ["glucose", "sugar", "hba1c"]) else "stable" if delta == 0 else "worsened"
+                    session.add(ClinicalGraphEdge(
+                        id=str(uuid.uuid4()),
+                        care_profile_id=cpid,
+                        source_node_id=n1.id,
+                        target_node_id=n2.id,
+                        relation_type="TEMPORAL_SEQUENCE",
+                        delta_numeric=delta,
+                        delta_percentage=delta_pct,
+                        trend_direction=trend,
+                        properties_json=json.dumps({
+                            "prior_value": n1.value_numeric,
+                            "current_value": n2.value_numeric,
+                            "unit": n2.unit,
+                            "comparison_text": f"{'Decreased' if delta < 0 else 'Increased'} by {abs(delta)} {n2.unit} ({delta_pct}%) from baseline."
+                        })
+                    ))
+    await session.commit()
 
 
 async def init_db_and_seed():
@@ -30,6 +152,10 @@ async def init_db_and_seed():
         # Check if already seeded
         res = await session.execute(select(User).limit(1))
         if res.scalar_one_or_none():
+            # Check if graph nodes need to be backfilled
+            g_check = await session.execute(select(ClinicalGraphNode).limit(1))
+            if not g_check.scalar_one_or_none():
+                await seed_graph_for_existing_records(session)
             return
 
         # 1. Users

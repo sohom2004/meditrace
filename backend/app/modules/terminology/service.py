@@ -58,14 +58,18 @@ class TerminologyService:
                     "drug_class": info["class"],
                     "standard_dose": info["standard_dose"]
                 }
-
         return {
             "brand_name": brand_name,
-            "generic_name": brand_name,
+            "generic_name": None,
             "atc_code": None,
-            "drug_class": "Unmapped Medication",
+            "drug_class": "Unmapped",
             "standard_dose": None
         }
+
+    @staticmethod
+    def map_indian_brand(brand_name: str) -> dict[str, str]:
+        """Alias for map_indian_drug."""
+        return TerminologyService.map_indian_drug(brand_name)
 
     @staticmethod
     def convert_unit(value: float, from_unit: str, to_unit: str) -> float | None:

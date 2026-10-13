@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Stethoscope, Send, Calendar, Clock, CheckCircle2, MessageSquare, ShieldCheck, User } from 'lucide-react';
+import { Stethoscope, Send, Calendar, Clock, CheckCircle2, MessageSquare, ShieldCheck, User, Sparkles } from 'lucide-react';
 import { api } from '../api';
 
 interface PatientDoctorPortalProps {
@@ -73,14 +73,13 @@ export const PatientDoctorPortal: React.FC<PatientDoctorPortalProps> = ({
     if (!activeProfileId || !selectedDoctorId) return;
     try {
       setBookingStatus('Preparing consultation request with clinical summary...');
-      // Propose appointment through assistant chat endpoint to trigger Propose -> Confirm pipeline
       const conv = await api.createConversation(activeProfileId);
       await api.sendMessage(
         conv.id,
         activeProfileId,
         'Please schedule an appointment with Dr. Mukherjee for tomorrow morning at 10:30 AM.'
       );
-      setBookingStatus('Consultation appointment proposed! Check the Action Confirmation card above.');
+      setBookingStatus('Consultation appointment proposed! Check pending actions in assistant chat.');
       if (onAppointmentRequested) {
         onAppointmentRequested();
       }
@@ -92,30 +91,30 @@ export const PatientDoctorPortal: React.FC<PatientDoctorPortalProps> = ({
   const currentDoctor = doctors.find((d) => d.id === selectedDoctorId);
 
   return (
-    <div className="glass-card p-6 space-y-6">
+    <div className="glass-card p-6 space-y-6 border border-slate-800">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-200/60">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-500 text-white flex items-center justify-center shadow-md shadow-sky-500/20">
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-800">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-sky-500 to-teal-400 text-white flex items-center justify-center shadow-lg shadow-sky-500/20">
             <Stethoscope className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-slate-900 tracking-tight">Doctor Communication & Care Portal</h3>
-            <p className="text-[11px] text-slate-400 font-medium">Direct secure messaging with your verified healthcare providers</p>
+            <h3 className="text-base font-bold text-white tracking-tight">Connected Doctors & Direct Consultation</h3>
+            <p className="text-xs text-slate-400">Encrypted messaging with verified medical council practitioners</p>
           </div>
         </div>
 
-        <span className="flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
-          <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-          ABDM End-to-End Encrypted
+        <span className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full bg-emerald-950/60 text-emerald-300 border border-emerald-700/50">
+          <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+          ABDM DPDP Act Encrypted
         </span>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Doctor List */}
         <div className="space-y-3">
-          <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Your Connected Doctors</h4>
-          <div className="space-y-2">
+          <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Verified Care Network</h4>
+          <div className="space-y-2.5">
             {doctors.map((doc) => {
               const isSelected = doc.id === selectedDoctorId;
               return (
@@ -124,18 +123,20 @@ export const PatientDoctorPortal: React.FC<PatientDoctorPortalProps> = ({
                   onClick={() => setSelectedDoctorId(doc.id)}
                   className={`w-full text-left p-3.5 rounded-2xl border transition-all cursor-pointer ${
                     isSelected
-                      ? 'bg-sky-50/90 border-sky-300 shadow-xs'
-                      : 'bg-white/70 border-slate-200/80 hover:bg-slate-50'
+                      ? 'bg-sky-950/50 border-sky-500/70 shadow-md shadow-sky-500/10'
+                      : 'bg-slate-900/60 border-slate-800 hover:border-slate-700 hover:bg-slate-800/60'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-1">
-                    <span className="font-bold text-xs text-slate-900">{doc.name}</span>
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">
+                    <span className="font-bold text-xs text-white">{doc.name}</span>
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800/60">
                       Verified
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-500 font-medium">{doc.specialty}</p>
-                  <p className="text-[10px] text-slate-400 mt-1">{doc.hospital || 'Apollo Gleneagles, Kolkata'}</p>
+                  <p className="text-[11px] text-sky-400 font-medium">{doc.specialty}</p>
+                  <p className="text-[10px] text-slate-400 mt-1 font-mono">
+                    Council Reg: {doc.council_reg_number || 'WBMC/2014/19823'}
+                  </p>
                 </button>
               );
             })}
@@ -145,13 +146,13 @@ export const PatientDoctorPortal: React.FC<PatientDoctorPortalProps> = ({
           <div className="pt-2">
             <button
               onClick={handleBookConsultation}
-              className="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-white text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
             >
               <Calendar className="w-4 h-4 text-sky-400" />
               <span>Book Appointment with {currentDoctor?.name || 'Doctor'}</span>
             </button>
             {bookingStatus && (
-              <p className="text-[11px] text-sky-700 mt-2 p-2 rounded-lg bg-sky-50 border border-sky-100">
+              <p className="text-[11px] text-sky-300 mt-2 p-2 rounded-xl bg-sky-950/60 border border-sky-800/60">
                 {bookingStatus}
               </p>
             )}
@@ -159,32 +160,32 @@ export const PatientDoctorPortal: React.FC<PatientDoctorPortalProps> = ({
         </div>
 
         {/* Messaging Pane */}
-        <div className="lg:col-span-2 flex flex-col h-[420px] rounded-2xl bg-white/70 border border-slate-200/80 overflow-hidden shadow-2xs">
+        <div className="lg:col-span-2 flex flex-col h-[480px] rounded-2xl bg-slate-900/80 border border-slate-800 overflow-hidden shadow-xl">
           {/* Thread Header */}
-          <div className="p-3.5 border-b border-slate-200/60 bg-slate-50/70 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center font-bold text-xs">
+          <div className="p-3.5 border-b border-slate-800 bg-slate-900/90 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-sky-500 to-teal-400 text-white flex items-center justify-center font-bold text-xs">
                 {currentDoctor?.name?.slice(4, 6) || 'DR'}
               </div>
               <div>
-                <h4 className="text-xs font-bold text-slate-900">{currentDoctor?.name || 'Consulting Physician'}</h4>
-                <p className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse" />
-                  Available for asynchronous triage
+                <h4 className="text-xs font-bold text-white">{currentDoctor?.name || 'Consulting Physician'}</h4>
+                <p className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse" />
+                  Available for asynchronous clinical review
                 </p>
               </div>
             </div>
-            <span className="text-[11px] text-slate-400">Response within 2 hrs</span>
+            <span className="text-[10px] text-slate-400 font-mono">Response within 2h</span>
           </div>
 
           {/* Message List */}
           <div className="flex-1 p-4 overflow-y-auto space-y-3">
             {messages.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-400">
-                <MessageSquare className="w-8 h-8 mb-2 text-slate-300" />
-                <p className="text-xs font-medium">No previous messages with this doctor.</p>
-                <p className="text-[11px] text-slate-400 mt-1">
-                  Send a query regarding your symptoms, prescription renewal, or recent test results.
+                <MessageSquare className="w-8 h-8 mb-2 text-slate-600" />
+                <p className="text-xs font-medium text-slate-300">No previous messages with this doctor.</p>
+                <p className="text-[11px] text-slate-500 mt-1 max-w-xs">
+                  Send a query regarding your symptoms, prescription renewals, or recent laboratory reports.
                 </p>
               </div>
             ) : (
@@ -195,7 +196,7 @@ export const PatientDoctorPortal: React.FC<PatientDoctorPortalProps> = ({
                     key={m.id}
                     className={`flex flex-col ${isPatient ? 'items-end' : 'items-start'}`}
                   >
-                    <div className="flex items-center gap-1.5 mb-1 text-[10px] text-slate-400 font-medium">
+                    <div className="flex items-center gap-1.5 mb-1 text-[10px] text-slate-500 font-medium">
                       <span>{isPatient ? 'You' : currentDoctor?.name || 'Doctor'}</span>
                       <span>•</span>
                       <span>{new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
@@ -203,8 +204,8 @@ export const PatientDoctorPortal: React.FC<PatientDoctorPortalProps> = ({
                     <div
                       className={`max-w-[80%] p-3 rounded-2xl text-xs leading-relaxed ${
                         isPatient
-                          ? 'bg-sky-600 text-white rounded-tr-none shadow-xs'
-                          : 'bg-slate-100/90 text-slate-800 rounded-tl-none border border-slate-200/80 shadow-2xs'
+                          ? 'bg-sky-600 text-white rounded-tr-none shadow-md'
+                          : 'bg-slate-800 text-slate-200 rounded-tl-none border border-slate-700'
                       }`}
                     >
                       {m.content}
@@ -217,7 +218,7 @@ export const PatientDoctorPortal: React.FC<PatientDoctorPortalProps> = ({
           </div>
 
           {/* Message Input Box */}
-          <div className="p-3 border-t border-slate-200/60 bg-white/90 flex items-center gap-2">
+          <div className="p-3 border-t border-slate-800 bg-slate-900/90 flex items-center gap-2">
             <input
               type="text"
               value={newMessage}
@@ -226,12 +227,12 @@ export const PatientDoctorPortal: React.FC<PatientDoctorPortalProps> = ({
                 if (e.key === 'Enter') handleSendMessage();
               }}
               placeholder={`Message ${currentDoctor?.name || 'your doctor'} securely...`}
-              className="flex-1 text-xs px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-sky-500"
+              className="flex-1 text-xs px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-sky-500"
             />
             <button
               onClick={handleSendMessage}
               disabled={!newMessage.trim()}
-              className="p-2.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white transition-colors cursor-pointer disabled:opacity-40 shadow-xs"
+              className="p-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white transition-all cursor-pointer disabled:opacity-40 shadow-md shadow-sky-600/20"
             >
               <Send className="w-4 h-4" />
             </button>

@@ -57,6 +57,7 @@ from app.db.schemas import (
     UploadPresignRequest,
     UploadPresignResponse,
     UserRead,
+    UserRegisterRequest,
     DoctorPatientMessageCreate,
     DoctorPatientMessageRead,
     MedicineOrderCreate,
@@ -161,6 +162,59 @@ async def verify_otp(req: OTPVerify, session: AsyncSession = Depends(get_db)):
     return TokenResponse(access_token=token, user=UserRead.model_validate(user))
 
 
+@api_router.post("/auth/register", response_model=TokenResponse)
+async def register(req: UserRegisterRequest, session: AsyncSession = Depends(get_db)):
+    """Registers a new user and provisions their primary 'self' care profile."""
+    user_res = await session.execute(select(User).where(User.phone == req.phone))
+    existing = user_res.scalar_one_or_none()
+    if existing:
+        token = create_access_token({"sub": existing.id, "role": existing.role, "phone": existing.phone})
+        return TokenResponse(access_token=token, user=UserRead.model_validate(existing))
+
+    user = User(
+        phone=req.phone,
+        full_name=req.full_name,
+        role=req.role,
+        is_active=True,
+        is_verified=True
+    )
+    session.add(user)
+    await session.commit()
+    await session.refresh(user)
+
+    if req.role == "patient":
+        profile = CareProfile(
+            full_name=req.full_name,
+            relationship="self",
+            gender="Unknown"
+        )
+        session.add(profile)
+        await session.commit()
+        await session.refresh(profile)
+
+        member = CareProfileMember(
+            user_id=user.id,
+            care_profile_id=profile.id,
+            role="owner"
+        )
+        session.add(member)
+        await session.commit()
+    elif req.role == "practitioner":
+        doc_prof = PractitionerProfile(
+            user_id=user.id,
+            name=req.full_name,
+            council_reg_number=f"MCI/{int(datetime.now(timezone.utc).timestamp()) % 100000}",
+            council_name="National Medical Commission",
+            specialty="General Medicine",
+            is_verified=True
+        )
+        session.add(doc_prof)
+        await session.commit()
+
+    token = create_access_token({"sub": user.id, "role": user.role, "phone": user.phone})
+    return TokenResponse(access_token=token, user=UserRead.model_validate(user))
+
+
 @api_router.get("/auth/me", response_model=UserRead)
 async def get_me(current_user: User = Depends(get_current_user)):
     return UserRead.model_validate(current_user)
@@ -190,7 +244,19 @@ async def create_care_profile(
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db)
 ):
-    """Creates a new CareProfile (e.g. for elderly parent or child) and binds current user as owner."""
+    """Creates a new CareProfile (e.g. for elderly parent or child) and binds current user as owner.
+
+    Enforces maximum 3 members per subscription plan.
+    """
+    members_res = await session.execute(
+        select(CareProfileMember).where(CareProfileMember.user_id == current_user.id)
+    )
+    if len(members_res.scalars().all()) >= 3:
+        raise HTTPException(
+            status_code=400,
+            detail="Subscription limit reached: Maximum 3 member profiles allowed on this plan."
+        )
+
     profile = CareProfile(**req.model_dump())
     session.add(profile)
     await session.commit()
@@ -204,6 +270,27 @@ async def create_care_profile(
     session.add(member)
     await session.commit()
     return CareProfileRead.model_validate(profile)
+
+
+@api_router.delete("/care-profiles/{id}")
+async def delete_care_profile(
+    id: str,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db)
+):
+    """Deletes a CareProfile if owned by the current user."""
+    await check_care_profile_access(session, current_user.id, id, "write")
+    m_res = await session.execute(
+        select(CareProfileMember).where(CareProfileMember.care_profile_id == id)
+    )
+    for m in m_res.scalars().all():
+        await session.delete(m)
+
+    p = await session.get(CareProfile, id)
+    if p:
+        await session.delete(p)
+    await session.commit()
+    return {"status": "deleted", "id": id}
 
 
 @api_router.get("/care-profiles/{id}/snapshot")
@@ -284,6 +371,46 @@ async def compare_observations_api(
         ref_high=current_obs.reference_range_high
     )
     return ObservationCompareResponse(**result)
+
+
+# ==========================================
+# CLINICAL GRAPH MEMORY & FINDINGS TRAJECTORIES
+# ==========================================
+
+@api_router.get("/care-profiles/{id}/graph")
+async def get_patient_graph_endpoint(
+    id: str,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db)
+):
+    """Returns patient clinical knowledge graph with report provenance and temporal edges."""
+    await check_care_profile_access(session, current_user.id, id, "read")
+    from app.modules.graph_memory.service import GraphMemoryService
+    return await GraphMemoryService.get_patient_graph(session, id)
+
+
+@api_router.get("/care-profiles/{id}/trajectories")
+async def get_patient_trajectories_endpoint(
+    id: str,
+    test_name: str | None = None,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db)
+):
+    """Returns multi-report time-series lab trajectories for dynamic charting."""
+    await check_care_profile_access(session, current_user.id, id, "read")
+    from app.modules.graph_memory.service import GraphMemoryService
+    return await GraphMemoryService.get_temporal_trajectories(session, id, test_name)
+
+
+@api_router.get("/documents/{id}/findings")
+async def get_document_findings_endpoint(
+    id: str,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db)
+):
+    """Returns extracted findings strictly mapped to a specific report."""
+    from app.modules.graph_memory.service import GraphMemoryService
+    return await GraphMemoryService.get_report_findings(session, id)
 
 
 @api_router.get("/care-profiles/{id}/medications")

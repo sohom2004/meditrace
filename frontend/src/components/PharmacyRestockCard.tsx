@@ -54,20 +54,20 @@ export const PharmacyRestockCard: React.FC<PharmacyRestockProps> = ({ activeProf
   };
 
   return (
-    <div className="glass-card p-6">
-      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-200/60 mb-4">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-400 text-white flex items-center justify-center shadow-md shadow-amber-500/20">
+    <div className="glass-card p-6 border border-slate-800">
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-800 mb-5">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-400 text-white flex items-center justify-center shadow-lg shadow-amber-500/20">
             <Pill className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-slate-900 tracking-tight">Medication Inventory & Refill Operations</h3>
-            <p className="text-[11px] text-slate-400 font-medium">Automated supply monitoring & pharmacy dispatch</p>
+            <h3 className="text-base font-bold text-white tracking-tight">Medication Inventory & Refill Operations</h3>
+            <p className="text-xs text-slate-400">Automated supply monitoring & express delivery dispatch</p>
           </div>
         </div>
 
         {hasLowSupply && (
-          <span className="flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200 animate-pulse">
+          <span className="flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full bg-rose-950 text-rose-300 border border-rose-800 animate-pulse">
             <AlertTriangle className="w-3.5 h-3.5" />
             Supply Alert: Restock Needed
           </span>
@@ -76,7 +76,7 @@ export const PharmacyRestockCard: React.FC<PharmacyRestockProps> = ({ activeProf
 
       {loading ? (
         <div className="p-8 text-center text-xs text-slate-400 animate-pulse">
-          Auditing active medication supply and pharmacy availability...
+          Auditing active medication supply and pharmacy stock...
         </div>
       ) : medsList.length > 0 ? (
         <div className="space-y-4">
@@ -92,20 +92,20 @@ export const PharmacyRestockCard: React.FC<PharmacyRestockProps> = ({ activeProf
                   key={idx}
                   className={`p-4 rounded-2xl border transition-all ${
                     isLow
-                      ? 'bg-rose-50/70 border-rose-200 shadow-xs'
-                      : 'bg-white/80 border-slate-200/70'
+                      ? 'bg-rose-950/20 border-rose-800/60 shadow-sm'
+                      : 'bg-slate-900/80 border-slate-800 hover:border-slate-700'
                   }`}
                 >
                   <div className="flex items-start justify-between mb-2">
                     <div>
-                      <h4 className="text-xs font-bold text-slate-900">{med.medicine_name || med.name}</h4>
-                      <p className="text-[11px] text-slate-500 font-medium">{med.dosage || med.frequency}</p>
+                      <h4 className="text-xs font-bold text-white">{med.medicine_name || med.name}</h4>
+                      <p className="text-[11px] text-slate-400 mt-0.5">{med.dosage || med.frequency}</p>
                     </div>
                     <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
                         isLow
-                          ? 'bg-rose-100 text-rose-800 border border-rose-300'
-                          : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                          ? 'bg-rose-950 text-rose-300 border-rose-800'
+                          : 'bg-emerald-950 text-emerald-300 border border-emerald-800'
                       }`}
                     >
                       {daysLeft} days left
@@ -113,18 +113,16 @@ export const PharmacyRestockCard: React.FC<PharmacyRestockProps> = ({ activeProf
                   </div>
 
                   {/* Supply bar */}
-                  <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden my-2">
+                  <div className="w-full bg-slate-950 h-1.5 rounded-full overflow-hidden my-2">
                     <div
-                      className={`h-full rounded-full ${
-                        isLow ? 'bg-rose-500' : 'bg-emerald-500'
-                      }`}
+                      className={`h-full rounded-full ${isLow ? 'bg-rose-500' : 'bg-emerald-500'}`}
                       style={{ width: `${percent}%` }}
                     />
                   </div>
 
-                  <div className="flex items-center justify-between text-[10px] text-slate-400">
+                  <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1">
                     <span>Est. Price: ₹{med.estimated_price_inr || 200}</span>
-                    <span>Refill Pack: {med.recommended_refill_quantity || 30} Tabs</span>
+                    <span>Pack: {med.recommended_refill_quantity || 30} Tablets</span>
                   </div>
                 </div>
               );
@@ -132,18 +130,18 @@ export const PharmacyRestockCard: React.FC<PharmacyRestockProps> = ({ activeProf
           </div>
 
           {/* Delivery & Reorder Action */}
-          <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-200/70 flex flex-wrap items-center justify-between gap-4">
+          <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 flex flex-wrap items-center justify-between gap-4">
             <div className="flex-1 min-w-[260px]">
-              <label className="text-[11px] font-bold text-slate-600 block mb-1">
-                Verified Delivery Destination (ABDM Integrated)
+              <label className="text-[11px] font-bold text-slate-400 block mb-1">
+                Verified Delivery Address (ABDM Integrated)
               </label>
               <div className="flex items-center gap-2">
-                <Truck className="w-4 h-4 text-slate-400 shrink-0" />
+                <Truck className="w-4 h-4 text-slate-500 shrink-0" />
                 <input
                   type="text"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
-                  className="w-full text-xs px-3 py-1.5 rounded-xl bg-white border border-slate-200 focus:outline-none focus:border-amber-500"
+                  className="w-full text-xs px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-amber-500"
                 />
               </div>
             </div>
@@ -151,7 +149,7 @@ export const PharmacyRestockCard: React.FC<PharmacyRestockProps> = ({ activeProf
             <button
               onClick={handle1ClickReorder}
               disabled={isOrdering}
-              className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-xs font-bold shadow-md shadow-amber-500/20 cursor-pointer transition-all flex items-center gap-2 shrink-0 disabled:opacity-50"
+              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white text-xs font-bold shadow-lg shadow-amber-500/25 cursor-pointer transition-all flex items-center gap-2 shrink-0 disabled:opacity-50"
             >
               <ShoppingBag className="w-4 h-4" />
               <span>{isOrdering ? 'Dispatching...' : '1-Click Refill Order'}</span>
@@ -160,18 +158,22 @@ export const PharmacyRestockCard: React.FC<PharmacyRestockProps> = ({ activeProf
 
           {/* Order confirmation notice */}
           {orderSuccess && (
-            <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 flex items-start gap-3">
-              <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+            <div className="p-4 rounded-2xl bg-emerald-950/60 border border-emerald-800/60 text-xs text-emerald-200 flex items-start gap-3">
+              <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
               <div>
                 <p className="font-bold">Order #{orderSuccess.order_id} Confirmed with MediTrace Express Partner</p>
-                <p className="text-[11px] text-emerald-700 mt-0.5">
+                <p className="text-[11px] text-emerald-300 mt-0.5">
                   Dispatched to {orderSuccess.delivery_address}. Estimated delivery within 24 hours. Tracking status: {orderSuccess.status}.
                 </p>
               </div>
             </div>
           )}
         </div>
-      ) : null}
+      ) : (
+        <div className="p-6 text-center text-xs text-slate-400">
+          No medication restock required at this time.
+        </div>
+      )}
     </div>
   );
 };
